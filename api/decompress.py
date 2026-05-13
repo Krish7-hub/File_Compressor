@@ -20,34 +20,63 @@ class BinaryTree:
 
 
 def decompress_data(data: bytes) -> str:
-    if len(data) < 8 or data[:7] != b'HUFFMAN':
-        raise ValueError('Invalid file — not a Huffman compressed file. Upload a .huff.bin file.')
+    # ── Magic check: must be exactly b'HUFFMAN\x01' (8 bytes) ─────────────
+    if len(data) < 17 or data[:8] != b'HUFFMAN\x01':
+        raise ValueError(
+            'Invalid file — not a valid Huffman compressed file. '
+            'Please upload a .huff.bin file created by this tool.'
+        )
 
     offset = 8
-    if offset + 4 > len(data):
-        raise ValueError('Corrupted file: header truncated.')
 
+    # ── Frequency table length ─────────────────────────────────────────────
+    if offset + 4 > len(data):
+        raise ValueError('Corrupted file: header truncated (freq-table length missing).')
     freq_json_len = struct.unpack('>I', data[offset:offset + 4])[0]
     offset += 4
 
-    if offset + freq_json_len > len(data):
-        raise ValueError('Corrupted file: frequency table truncated.')
+    if freq_json_len == 0:
+        raise ValueError('Corrupted file: frequency table length is zero.')
 
-    freq_dict = json.loads(data[offset:offset + freq_json_len].decode('utf-8'))
+    # ── Frequency table ────────────────────────────────────────────────────
+    if offset + freq_json_len > len(data):
+        raise ValueError('Corrupted file: frequency table data truncated.')
+    try:
+        freq_dict = json.loads(data[offset:offset + freq_json_len].decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError(f'Corrupted file: frequency table is not valid JSON ({exc}).') from exc
     offset += freq_json_len
 
+    if not isinstance(freq_dict, dict) or len(freq_dict) == 0:
+        raise ValueError('Corrupted file: frequency table is empty or malformed.')
+
+    # ── Padding byte ───────────────────────────────────────────────────────
+    if offset >= len(data):
+        raise ValueError('Corrupted file: padding byte missing.')
     padding = data[offset]
+    if padding > 7:
+        raise ValueError(f'Corrupted file: invalid padding value {padding} (must be 0-7).')
     offset += 1
 
+    # ── Original character count ───────────────────────────────────────────
+    if offset + 4 > len(data):
+        raise ValueError('Corrupted file: original character count missing.')
     orig_count = struct.unpack('>I', data[offset:offset + 4])[0]
     offset += 4
 
-    compressed = data[offset:]
+    if orig_count == 0:
+        raise ValueError('Corrupted file: original character count is zero.')
 
-    # Rebuild Huffman tree from frequency table
+    # ── Compressed payload ─────────────────────────────────────────────────
+    compressed = data[offset:]
+    if len(compressed) == 0:
+        raise ValueError('Corrupted file: compressed payload is empty.')
+
+    # ── Rebuild Huffman tree ───────────────────────────────────────────────
     heap = [BinaryTree(ch, f) for ch, f in freq_dict.items()]
     heapq.heapify(heap)
 
+    # Single-character edge case (same as compress side)
     if len(heap) == 1:
         node = heapq.heappop(heap)
         root = BinaryTree(None, node.freq)
@@ -63,32 +92,40 @@ def decompress_data(data: bytes) -> str:
         heapq.heappush(heap, merged)
 
     root = heapq.heappop(heap)
-    reversecodes = {}
+    reverse_codes = {}
 
     def walk(node, bits):
         if node is None:
             return
         if node.value is not None:
-            reversecodes[bits if bits else '0'] = node.value
+            reverse_codes[bits if bits else '0'] = node.value
             return
-        walk(node.left, bits + '0')
+        walk(node.left,  bits + '0')
         walk(node.right, bits + '1')
 
     walk(root, '')
 
+    # ── Bit-string decode ──────────────────────────────────────────────────
     bit_string = ''.join(bin(b)[2:].zfill(8) for b in compressed)
     if padding > 0:
         bit_string = bit_string[:-padding]
 
     current = ''
-    result = []
+    result  = []
     for bit in bit_string:
         current += bit
-        if current in reversecodes:
-            result.append(reversecodes[current])
+        if current in reverse_codes:
+            result.append(reverse_codes[current])
             current = ''
         if len(result) >= orig_count:
             break
+
+    # Sanity check: leftover bits mean the file is corrupted or mismatched
+    if len(result) != orig_count:
+        raise ValueError(
+            f'Decompression mismatch: expected {orig_count} characters '
+            f'but decoded {len(result)}. The file may be corrupted.'
+        )
 
     return ''.join(result)
 
@@ -102,15 +139,42 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             length = int(self.headers.get('Content-Length', 0))
+            if length == 0:
+                self._json(400, {'success': False, 'error': 'Empty request body.'})
+                return
+
             body = self.rfile.read(length)
-            data = json.loads(body)
+
+            try:
+                data = json.loads(body)
+            except json.JSONDecodeError:
+                self._json(400, {'success': False, 'error': 'Invalid JSON in request body.'})
+                return
+
+            if 'content' not in data:
+                self._json(400, {'success': False, 'error': 'Missing "content" field.'})
+                return
 
             filename = data.get('filename', 'file.bin')
-            content_bytes = base64.b64decode(data['content'])
+
+            try:
+                content_bytes = base64.b64decode(data['content'])
+            except Exception:
+                self._json(400, {'success': False, 'error': 'Invalid base64 content.'})
+                return
+
+            if len(content_bytes) == 0:
+                self._json(400, {'success': False, 'error': 'File is empty.'})
+                return
 
             decoded_text = decompress_data(content_bytes)
 
-            stem = filename.replace('.huff.bin', '').replace('.bin', '')
+            # Build clean output filename
+            stem = filename
+            for suffix in ('.huff.bin', '.bin'):
+                if stem.endswith(suffix):
+                    stem = stem[:-len(suffix)]
+                    break
             out_name = stem + '_decompressed.txt'
 
             self._json(200, {
@@ -124,8 +188,12 @@ class handler(BaseHTTPRequestHandler):
                 }
             })
 
+        except ValueError as e:
+            # User-facing errors (bad file, corrupted, etc.)
+            self._json(400, {'success': False, 'error': str(e)})
+
         except Exception as e:
-            self._json(500, {'success': False, 'error': str(e)})
+            self._json(500, {'success': False, 'error': f'Internal server error: {str(e)}'})
 
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin', '*')
