@@ -2,16 +2,16 @@
   "version": 2,
   "builds": [
     { "src": "api/compress.py",   "use": "@vercel/python" },
-    { "src": "api/decompress.py", "use": "@vercel/python" }
+    { "src": "api/decompress.py", "use": "@vercel/python" },
+    { "src": "index.html",        "use": "@vercel/static" },
+    { "src": "style.css",         "use": "@vercel/static" },
+    { "src": "app.js",            "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/compress",   "dest": "/api/compress.py"   },
     { "src": "/api/decompress", "dest": "/api/decompress.py" },
-    {
-      "src": "/(.*\\.(css|js|ico|png|svg|woff2?))",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/$1"
-    },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/style.css",      "dest": "/style.css"         },
+    { "src": "/app.js",         "dest": "/app.js"            },
+    { "src": "/(.*)",           "dest": "/index.html"        }
   ]
 }
