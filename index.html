@@ -1,116 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Lossless text file compression using Huffman coding. Upload any plain-text file, compress it to a compact binary, then decompress it back perfectly." />
-  <title>huffman.zip — Lossless File Compressor</title>
-
-  <!-- Fonts -->
+  <meta name="description" content="Lossless text compression using Huffman coding. Upload any plain-text file, compress it to a compact binary, decompress it back perfectly." />
+  <title>huffman.zip — Lossless Compressor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap"
-    rel="stylesheet" />
-
-  <!-- Styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <div class="page">
+
+  <div class="shell">
 
     <!-- ── Header ── -->
-    <header>
-      <div class="logo-row">
-        <div class="logo-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
+    <header class="header">
+      <div class="header-left">
+        <span class="logo-mark">HZ</span>
+        <div>
+          <h1 class="site-name">huffman.zip</h1>
+          <p class="site-sub">Lossless text compression</p>
         </div>
-        <h1>huffman.zip <span class="tag">v1.1</span></h1>
       </div>
-      <p class="subtitle">
-        Lossless text compression using Huffman coding — upload any plain-text file to compress it
-        into a compact binary, then decompress it back perfectly.
-      </p>
+      <span class="badge">v1.1</span>
     </header>
 
-    <!-- ── Mode toggle ── -->
-    <div class="mode-bar" role="group" aria-label="Compression mode">
-      <button class="mode-btn active" id="btn-compress" onclick="setMode('compress')" aria-pressed="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 2v10m0 0l-3-3m3 3l3-3M2 17l.9 2.4A2 2 0 004.8 21h14.4a2 2 0 001.9-1.6L22 17" />
-        </svg>
-        <span>Compress</span>
-      </button>
-      <button class="mode-btn" id="btn-decompress" onclick="setMode('decompress')" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 22V12m0 0l-3 3m3-3l3 3M2 7l.9-2.4A2 2 0 014.8 3h14.4a2 2 0 011.9 1.6L22 7" />
-        </svg>
-        <span>Decompress</span>
-      </button>
-    </div>
+    <!-- ── Main card ── -->
+    <main class="card">
 
-    <!-- ── Drop zone ── -->
-    <div class="drop-zone" id="drop-zone" role="button" aria-label="Drop file here or click to browse">
-      <input
-        type="file"
-        id="file-input"
-        accept=".txt,.csv,.md,.log,.json,.xml,.py,.js,.ts,.html,.css,.java,.c,.cpp,.rs"
-        aria-label="Choose a file to compress" />
-      <div class="drop-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-        </svg>
+      <!-- Mode tabs -->
+      <div class="tabs" role="group" aria-label="Mode">
+        <button class="tab active" id="btn-compress" onclick="setMode('compress')">
+          <span class="tab-icon">↓</span> Compress
+        </button>
+        <button class="tab" id="btn-decompress" onclick="setMode('decompress')">
+          <span class="tab-icon">↑</span> Decompress
+        </button>
       </div>
-      <p class="drop-title">Drop your file here, or click to browse</p>
-      <p class="drop-sub" id="accepted-hint">.txt .csv .md .log .json .xml .py .js .ts .html .css .java .c .cpp .rs</p>
-    </div>
 
-    <!-- ── File selected state ── -->
-    <div class="file-selected hidden" id="file-selected" aria-live="polite">
-      <div class="file-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
+      <!-- Drop zone -->
+      <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Drop file or click to browse">
+        <input type="file" id="file-input"
+          accept=".txt,.csv,.md,.log,.json,.xml,.py,.js,.ts,.html,.css,.java,.c,.cpp,.rs"
+          aria-label="Choose file" />
+        <div class="drop-body">
+          <div class="drop-arrow" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+          </div>
+          <p class="drop-headline">Drop your file here</p>
+          <p class="drop-hint" id="accepted-hint">.txt .csv .md .log .json .xml .py .js .ts .html .css</p>
+        </div>
       </div>
-      <div class="file-info">
-        <div class="file-name" id="file-name-display">—</div>
-        <div class="file-size" id="file-size-display">—</div>
+
+      <!-- File selected -->
+      <div class="file-row hidden" id="file-selected">
+        <div class="file-ext" id="file-ext-badge">TXT</div>
+        <div class="file-meta">
+          <span class="file-name" id="file-name-display">—</span>
+          <span class="file-size" id="file-size-display">—</span>
+        </div>
+        <button class="file-remove" onclick="clearFile()" aria-label="Remove file">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
-      <button class="clear-btn" onclick="clearFile()" aria-label="Remove selected file">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+
+      <!-- Action button -->
+      <button class="run-btn" id="action-btn" onclick="run()" disabled>
+        <span id="action-label">Compress file</span>
       </button>
-    </div>
 
-    <!-- ── Action button ── -->
-    <button class="action-btn" id="action-btn" onclick="run()" disabled aria-live="polite">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-      </svg>
-      <span id="action-label">Compress file</span>
-    </button>
+    </main>
 
-    <!-- ── Result area ── -->
-    <div id="result-area" aria-live="polite" aria-atomic="true"></div>
+    <!-- ── Result ── -->
+    <div id="result-area"></div>
 
     <!-- ── Footer ── -->
-    <footer>
-      built with
-      <a href="https://en.wikipedia.org/wiki/Huffman_coding" target="_blank" rel="noopener noreferrer">huffman coding</a>
-      &middot; python + vercel &middot; lossless
+    <footer class="footer">
+      built with <a href="https://en.wikipedia.org/wiki/Huffman_coding" target="_blank" rel="noopener">huffman coding</a>
+      &nbsp;·&nbsp; python stdlib &nbsp;·&nbsp; lossless
     </footer>
 
-  </div><!-- /.page -->
+  </div>
 
-  <!-- Scripts -->
   <script src="app.js"></script>
 </body>
-
 </html>
