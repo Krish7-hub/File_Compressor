@@ -249,4 +249,4 @@ Then open `http://localhost:3000`.
 | Frontend logic | Vanilla JS (`'use strict'`, no bundler) |
 | Backend | Python 3 — `heapq`, `json`, `struct`, `base64` (stdlib only) |
 | Hosting | Vercel (static + serverless) |
-| Fonts | IBM Plex Sans + IBM Plex Mono (Google Fonts) |
+| Fonts | Inter + Poppins (Google Fonts) |
