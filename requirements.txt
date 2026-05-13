@@ -1,0 +1,1 @@
+# No external dependencies — Huffman compressor uses Python standard library only
